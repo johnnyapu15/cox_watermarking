@@ -102,8 +102,9 @@ def insertWatermark(_img, _wm, _alpha):
         ret_coef.append(dcted[..., i])
     ret = idct(ret)
     ret *= 255
-    ret = np.ndarray.astype(ret, np.int)
+    ret = np.ndarray.astype(ret, np.uint8)
     return ret, ret_coef
+
 # FUNC. Get watermark with the original image D and the distortured image D*.
 # 1-colored
 def extractWatermark2d(_d, _d_star, _n, _alpha, _type = 1):
@@ -137,6 +138,28 @@ def calcSims(_d, _d_star, _wms, _alpha, _type = 1):
     for i in range(n[0]):
         sims.append(sim(_wms[i], x_star[0]))
     return sims
+
+# Generate noise
+# @ self
+# @ type (String): Noise type
+# @ file (String): Image file
+def generateNoise(_img, _arg, _type = "gaussian"):
+    img_type = type(_img[0][0][0])
+    range_mx = 0
+    if np.float64 == img_type:
+        range_mx = 1
+    elif np.uint8 == img_type:
+        range_mx = 255
+    if _type == "gaussian":
+        row, column, channel = _img.shape
+        mean = _arg[0]
+        sigma = _arg[1]
+        gaussian = np.random.normal(mean, sigma, (row, column, channel))
+        img_noised = _img + gaussian * range_mx
+        return img_noised.astype(img_type) 
+    elif _type == "poisson":
+        pass
+
 
 def show_cox(_img, _img_w, _wms, _alpha):
     sims = calcSims(_img, _img_w, _wms, _alpha)
@@ -186,7 +209,7 @@ def show_coef(_coefs):
 
 # Set variables
 n = 200
-l = 100
+l = 1000
 a = 0.1
 #r = "./img/lena.png"
 r = './img/twice_01.jpg'
@@ -197,7 +220,7 @@ print('a: the alpha in algorithm')
 print('r: the route of image')
 
 
-wm_idx = 5
+wm_idx = 428
 
 # Create watermarks
 wms, directory, _ = createWatermarks(n, l)
@@ -215,9 +238,25 @@ img_w, coefs = insertWatermark(img, wms[wm_idx], a)
 misc.imsave(s + directory.split('/')[-1] + '-' + str(wm_idx) + '.jpg', img_w)
 
 # Plot 
-show_cox(img, img_w, wms, a)
-show_coef(coefs)
+# show_cox(img, img_w, wms, a)
+# show_coef(coefs)
 
+# Get noised image
+noised = generateNoise(img, (0, 0.01)) # Gaussian random noise
+
+
+# Experiment using gaussian noised image
+noised_arr = []
+fig = plt.figure()
+test_case = 5
+for i in range(test_case):
+    noised_arr.append(generateNoise(img_w, (0, 0.001 * (i))))
+    sims = calcSims(img, noised_arr[-1], wms, a)
+    fig.add_subplot(test_case, 3, 1 + i * 3).imshow(img_w)
+    fig.add_subplot(test_case, 3, 2 + i * 3).imshow(noised_arr[-1])
+    fig.add_subplot(test_case, 3, 3 + i * 3).plot(sims)
+
+plt.show()
 # # code for demo
 # print('n: the number of watermarks')
 # print('l: the length of watermark')
