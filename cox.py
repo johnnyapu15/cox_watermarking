@@ -192,6 +192,7 @@ print('l: the length of watermark')
 print('a: the alpha in algorithm')
 print('r: the route of image')
 
+##################
 ## For experiments
 wmf = '15536084801'
 wmidx = '137'
@@ -203,6 +204,8 @@ wms, directory, _ = createWatermarks(n, l)
 
 # Load watermarks
 loaded = loadWatermark(directory, n)
+
+##################
 ## For experiments
 directory = './watermarks/' + wmf
 wms = loadWatermark(directory, n)
@@ -213,6 +216,7 @@ img = ndimage.imread(r)
 
 # Insert a watermark into image
 img_w, coefs = insertWatermark(img, wms[wm_idx], a)
+##################
 ## For experiments
 img_w = ndimage.imread('./img-w/' + wmf + '-' + wmidx + '.jpg')
 
@@ -226,8 +230,9 @@ misc.imsave(s + directory.split('/')[-1] + '-' + str(wm_idx) + '.jpg', img_w)
 # # Get noised image
 # noised = generateNoise(img, (0, 0.01)) # Gaussian random noise
 
+##################
+## Experiment code
 
-# Exp
 exp_dir = './experiments/' + str(int(datetime.now().timestamp() * 10))
 try:
     if not(os.path.isdir(exp_dir)):
