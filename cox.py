@@ -140,9 +140,6 @@ def calcSims(_d, _d_star, _wms, _alpha, _type = 1):
     return sims
 
 # Generate noise
-# @ self
-# @ type (String): Noise type
-# @ file (String): Image file
 def generateNoise(_img, _arg, _type = "gaussian"):
     img_type = type(_img[0][0][0])
     range_mx = 0
@@ -158,7 +155,11 @@ def generateNoise(_img, _arg, _type = "gaussian"):
         img_noised = _img + gaussian * range_mx
         return img_noised.astype(img_type) 
     elif _type == "poisson":
-        pass
+        variable = len(np.unique(_img))
+        variable = _arg ** np.ceil(np.log2(variable))
+        poisson = np.random.poisson(_img * variable) / float(variable)
+        img_noised = _img + poisson * range_mx
+        return img_noised.astype(img_type) 
 
 
 def show_cox(_img, _img_w, _wms, _alpha):
@@ -179,38 +180,10 @@ def show_coef(_coefs):
     fig.add_subplot(1, 3, 3).imshow(fftpack.fftshift(np.log(_coefs[2])), cmap='gray')
     plt.show()
 
-#file_route = "./img/lena.png"
-# file_route = "./img/twice_01.jpg"
-
-
-# alpha = 0.1
-# num = 200
-# length = 100
-
-# d = ndimage.imread(file_route)
-# wms, directory, _ = createWatermarks(num, length, 'normal')
-# idx = 5
-# print('Inserting watermark[' + str(idx) + ']...')
-# ret, coefs = insertWatermark(d, wms[idx], alpha)
-# coefs[0] = np.abs(coefs[0]) + 1
-# coefs[1] = np.abs(coefs[1]) + 1
-# coefs[2] = np.abs(coefs[2]) + 1
-
-# sims = calcSims(d, ret, wms, alpha)
-# fig = plt.figure()
-# fig.add_subplot(2, 3, 1).imshow(d)
-# fig.add_subplot(2, 3, 2).imshow(ret)
-# fig.add_subplot(2, 3, 3).plot(sims)
-# fig.add_subplot(2, 3, 4).imshow(fftpack.fftshift(np.log(coefs[0])), cmap='gray')
-# fig.add_subplot(2, 3, 5).imshow(fftpack.fftshift(np.log(coefs[1])), cmap='gray')
-# fig.add_subplot(2, 3, 6).imshow(fftpack.fftshift(np.log(coefs[2])), cmap='gray')
-# plt.show()
-
-
 # Set variables
 n = 200
 l = 1000
-a = 0.1
+a = 0.01
 #r = "./img/lena.png"
 r = './img/twice_01.jpg'
 s = './img-w/'
@@ -219,50 +192,80 @@ print('l: the length of watermark')
 print('a: the alpha in algorithm')
 print('r: the route of image')
 
+## For experiments
+wmf = '15536084801'
+wmidx = '137'
 
-wm_idx = 428
+wm_idx = 137
 
 # Create watermarks
 wms, directory, _ = createWatermarks(n, l)
 
 # Load watermarks
 loaded = loadWatermark(directory, n)
+## For experiments
+directory = './watermarks/' + wmf
+wms = loadWatermark(directory, n)
+
 
 # Load image
 img = ndimage.imread(r)
 
 # Insert a watermark into image
 img_w, coefs = insertWatermark(img, wms[wm_idx], a)
+## For experiments
+img_w = ndimage.imread('./img-w/' + wmf + '-' + wmidx + '.jpg')
 
 # Save watermarked-image
 misc.imsave(s + directory.split('/')[-1] + '-' + str(wm_idx) + '.jpg', img_w)
 
-# Plot 
+# # Plot 
 # show_cox(img, img_w, wms, a)
 # show_coef(coefs)
 
-# Get noised image
-noised = generateNoise(img, (0, 0.01)) # Gaussian random noise
+# # Get noised image
+# noised = generateNoise(img, (0, 0.01)) # Gaussian random noise
 
+
+# Exp
+exp_dir = './experiments/' + str(int(datetime.now().timestamp() * 10))
+try:
+    if not(os.path.isdir(exp_dir)):
+        os.makedirs(os.path.join(exp_dir))
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        print("Failed to create directory!")
+        raise
 
 # Experiment using gaussian noised image
 noised_arr = []
-fig = plt.figure()
+fig_gaussian = plt.figure()
 test_case = 5
 for i in range(test_case):
-    noised_arr.append(generateNoise(img_w, (0, 0.001 * (i))))
+    tmp = 0.003 * i
+    noised_arr.append(generateNoise(img_w, (0, tmp)))
     sims = calcSims(img, noised_arr[-1], wms, a)
-    fig.add_subplot(test_case, 3, 1 + i * 3).imshow(img_w)
-    fig.add_subplot(test_case, 3, 2 + i * 3).imshow(noised_arr[-1])
-    fig.add_subplot(test_case, 3, 3 + i * 3).plot(sims)
+    fig_gaussian.add_subplot(test_case, 3, 1 + i * 3).imshow(img_w)
+    fig_gaussian.add_subplot(test_case, 3, 2 + i * 3).imshow(noised_arr[-1])
+    fig_gaussian.add_subplot(test_case, 3, 3 + i * 3).plot(sims)
+    misc.imsave(exp_dir + '/' + directory.split('/')[-1] + '-' + str(wm_idx) + '-gaussian-' + str(tmp).replace('.', '') + '.jpg', noised_arr[-1])
 
-plt.show()
-# # code for demo
-# print('n: the number of watermarks')
-# print('l: the length of watermark')
-# print('a: the alpha in algorithm')
-# print('r: the route of image')
-# n = 200
-# l = 100
-# a = 0.1
-# r = './img/twice_01.jpg'
+fig_gaussian.savefig(exp_dir + '/' + directory.split('/')[-1] + '-' + str(wm_idx) + '-gaussian-' + '.pdf')
+fig_gaussian.show()
+
+
+# Experiment using poisson noised image
+noised_arr = []
+fig_poisson = plt.figure()
+test_case = 5
+for i in range(test_case):
+    tmp = 0.13 * (i + 1)
+    noised_arr.append(generateNoise(img_w, tmp, "poisson"))
+    sims = calcSims(img, noised_arr[-1], wms, a)
+    fig_poisson.add_subplot(test_case, 3, 1 + i * 3).imshow(img_w)
+    fig_poisson.add_subplot(test_case, 3, 2 + i * 3).imshow(noised_arr[-1])
+    fig_poisson.add_subplot(test_case, 3, 3 + i * 3).plot(sims)
+    misc.imsave(exp_dir + '/' + directory.split('/')[-1] + '-' + str(wm_idx) + '-poisson-' + str(tmp).replace('.', '') + '.jpg', noised_arr[-1])
+
+fig_poisson.savefig(exp_dir + '/' + directory.split('/')[-1] + '-' + str(wm_idx) + '-poisson-' + '.pdf')
+fig_poisson.show()
