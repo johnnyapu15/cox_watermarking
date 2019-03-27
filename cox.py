@@ -6,6 +6,7 @@ from scipy import fftpack
 import numpy as np 
 import matplotlib.pyplot as plt
 import os
+import math
 
 # FUNC. Create watermarks
 def createWatermarks(_num, _length, _str = 'normal'):
@@ -72,6 +73,12 @@ def insertWatermark2d(_d_vect, _idx, _wm, _alpha, _type=1):
     if _type == 1:
         for idx, i in enumerate(_idx):
             ret[i] = _d_vect[i] + _alpha * _wm[[idx]]
+    elif _type == 2:
+        for idx, i in enumerate(_idx):
+            ret[i] = _d_vect[i] * (1 + _alpha * _wm[[idx]])
+    elif _type == 3:
+        for idx, i in enumerate(_idx):
+            ret[i] = _d_vect[i] * (math.exp(_alpha * _wm[[idx]]))
     return ret
 
 # Insert watermark _wm into _img using _alpha for the strength of watermark
